@@ -1,7 +1,5 @@
-﻿using LSAC;
+using LSAC;
 using LSAC.UserInterface;
-using Terminal.Gui;
-using Terminal.Gui.App;
 
 // Handle command-line arguments
 if (args.Length > 0)
@@ -15,13 +13,13 @@ if (args.Length > 0)
     }
     else if (command is "-h" or "--help" or "help")
     {
-        UiSetup.ShowHelp();
+        SetupApp.ShowHelp();
         return;
     }
     else
     {
         Console.WriteLine($"Unknown command: {command}");
-        UiSetup.ShowHelp();
+        SetupApp.ShowHelp();
         return;
     }
 }
@@ -39,11 +37,8 @@ if (Config.Model.Dialog == null)
     return;
 }
 
-using IApplication app = Application.Create();
-app.Init();
-
-var ui = new UiBuilder(app, Config.Model);
-ui.Run();
+new TuiApp(Config.Model).Run();
+Environment.Exit(0);
 
 static void HandleSetupCommand(string[] args)
 {
@@ -62,19 +57,19 @@ static void HandleSetupCommand(string[] args)
             else
             {
                 Console.WriteLine("Error: -f/--file requires a file path");
-                UiSetup.ShowHelp();
+                SetupApp.ShowHelp();
                 return;
             }
         }
         else if (args[i] is "-h" or "--help")
         {
-            UiSetup.ShowHelp();
+            SetupApp.ShowHelp();
             return;
         }
         else
         {
             Console.WriteLine($"Unknown option: {args[i]}");
-            UiSetup.ShowHelp();
+            SetupApp.ShowHelp();
             return;
         }
     }
@@ -89,9 +84,6 @@ static void HandleSetupCommand(string[] args)
         Config.LoadConfig();
     }
 
-    using IApplication app = Application.Create();
-    app.Init();
-
-    var setupUi = new UiSetup(app);
-    setupUi.RunSetupWizard();
+    new SetupApp().Run();
+    Environment.Exit(0);
 }

@@ -1,4 +1,4 @@
-﻿namespace LSAC;
+namespace LSAC;
 
 using System.Diagnostics;
 using System.Text;
@@ -214,11 +214,9 @@ public static class Utils
 
     private static void RestoreUnixTerminal()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
+        if (OperatingSystem.IsWindows()) return;
 
+        var sttyArgs = string.IsNullOrWhiteSpace(_savedTerminalState) ? "sane" : _savedTerminalState;
         try
         {
             using var process = new Process
@@ -226,7 +224,7 @@ public static class Utils
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "/bin/sh",
-                    Arguments = "-lc \"stty sane < /dev/tty\"",
+                    Arguments = $"-c \"stty {sttyArgs} < /dev/tty\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -236,10 +234,7 @@ public static class Utils
             process.Start();
             process.WaitForExit();
         }
-        catch
-        {
-            // Ignore if stty is unavailable.
-        }
+        catch { }
     }
 
     private static string? GetValidCwd(string? cwd)
@@ -263,8 +258,34 @@ public static class Utils
         return ("/bin/bash", $"-lc \"{escaped}\"");
     }
 
-    private static readonly IntPtr InputHandle = GetStdHandle(StdInputHandle);
-    private static readonly IntPtr OutputHandle = GetStdHandle(StdOutputHandle);
+    private static string? _savedTerminalState;
+
+    public static void SaveTerminalState()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        try
+        {
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    Arguments = "-c \"stty -g < /dev/tty\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            _savedTerminalState = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+        }
+        catch { }
+    }
+
+    private static readonly IntPtr InputHandle = OperatingSystem.IsWindows() ? GetStdHandle(StdInputHandle) : IntPtr.Zero;
+    private static readonly IntPtr OutputHandle = OperatingSystem.IsWindows() ? GetStdHandle(StdOutputHandle) : IntPtr.Zero;
 
     private static bool TryGetConsoleMode(IntPtr handle, out ConsoleModeFlags mode)
     {
